@@ -56,6 +56,7 @@ providers — see <doc:GettingStarted> for details.
 - ``OSLogHandler/MetadataStyle``
 - ``LogHandlerWithCategory``
 - ``CategoryAdderLogHandler``
+- ``MockLogHandler``
 
 ### Metadata
 

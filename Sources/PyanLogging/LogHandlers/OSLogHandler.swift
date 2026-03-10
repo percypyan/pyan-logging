@@ -16,7 +16,7 @@ import os
 /// ``LogHandlerWithCategory/category``. Log levels are translated to the
 /// corresponding `os.Logger` methods (e.g. `.warning` maps to `osLogger.warning`).
 ///
-/// Log output is formatted as:
+/// Log output is by default formatted as:
 /// ```
 /// [LEVEL][Source] Message
 /// > key = value | key = value
@@ -34,7 +34,7 @@ public struct OSLogHandler: LogHandlerWithCategory {
 	public var category: String {
 		didSet { osLogger = os.Logger(subsystem: label, category: category) }
 	}
-	private let metadataStyle: MetadataStyle
+	private let metadataStyle: MetadataFormatter.MetadataStyle
 
 	public var logLevel: Logging.Logger.Level = .info
 	public var metadata: Logging.Logger.Metadata = [:]
@@ -50,7 +50,7 @@ public struct OSLogHandler: LogHandlerWithCategory {
 	public init(
 		label: String,
 		category: String,
-		metadataStyle: MetadataStyle = .oneLine,
+		metadataStyle: MetadataFormatter.MetadataStyle = .oneLine,
 		metadataProvider: Logging.Logger.MetadataProvider? = nil
 	) {
 		self.label = label
@@ -101,44 +101,6 @@ public struct OSLogHandler: LogHandlerWithCategory {
 	}
 }
 
-public extension OSLogHandler {
-	/// Controls how metadata key-value pairs are formatted in log output.
-	///
-	/// The metadata style determines the visual layout of metadata appended
-	/// after the log message. Choose a style based on readability needs:
-	///
-	/// ```
-	/// // .oneLine (default)
-	/// [INFO] Request completed
-	/// > requestId = abc-123 | userId = 42
-	///
-	/// // .multiline
-	/// [INFO] Request completed
-	/// > requestId = abc-123
-	/// > userId = 42
-	///
-	/// // .dictionary
-	/// [INFO] Request completed
-	/// [
-	///     "requestId": "abc-123",
-	///     "userId": "42"
-	/// ]
-	///
-	/// // .hidden
-	/// [INFO] Request completed
-	/// ```
-	enum MetadataStyle: Sendable {
-		/// All metadata on a single line, separated by ` | `.
-		case oneLine
-		/// Each metadata pair on its own line, prefixed with `> `.
-		case multiline
-		/// The metadata dictionary's printed on multiple lines.
-		case dictionary
-		/// Suppresses metadata output entirely.
-		case hidden
-	}
-}
-
 extension OSLogHandler {
 	func formatMessage(
 		level: Logging.Logger.Level,
@@ -165,41 +127,11 @@ extension OSLogHandler {
 
 		// Metadata
 
-		let metadataString = formatMetadata(metadata: combinedMetadata)
+		let formatter = MetadataFormatter(style: metadataStyle)
+		let metadataString = formatter.string(for: combinedMetadata ?? [:])
 		let metadataSuffix = metadataString != nil ? "\n\(metadataString!)" : ""
 
 		return "\(header) \(message)\(metadataSuffix)"
-	}
-
-	func formatMetadata(metadata: Logging.Logger.Metadata?) -> String? {
-		guard let metadata, !metadata.isEmpty else { return nil }
-
-		switch metadataStyle {
-		case .oneLine:
-			let metadataString = metadata
-				.flattening()
-				.map { "\($0.0) = \($0.1)" }
-				.sorted()
-				.joined(separator: " | ")
-			return "> \(metadataString)"
-		case .multiline:
-			let metadataString = metadata
-				.flattening()
-				.map { "\($0.0) = \($0.1)" }
-				.sorted()
-				.joined(separator: "\n> ")
-			return "> \(metadataString)"
-		case .dictionary:
-			var lines: [String] = []
-			Self.formatDictionaryMetadataValue(
-				key: nil,
-				value: .dictionary(metadata),
-				indentation: "",
-				lines: &lines
-			)
-			return lines.joined(separator: "\n")
-		case .hidden: return nil
-		}
 	}
 
 	static func prepareMetadata(
@@ -221,55 +153,6 @@ extension OSLogHandler {
 		}
 
 		return metadata
-	}
-
-	static func formatDictionaryMetadataValue(
-		key: String?,
-		value: Logging.Logger.Metadata.Value,
-		indentation: String,
-		lines: inout [String],
-		skipTerminator: Bool = true
-	) {
-		let keyPrefix = key != nil ? "\"\(key!)\": " : ""
-		let terminator = skipTerminator ? "" : ","
-		switch value {
-		case .string(let string):
-			lines.append("\(indentation)\(keyPrefix)\"\(string)\"\(terminator)")
-		case .stringConvertible(let string):
-			lines.append("\(indentation)\(keyPrefix)\"\(string)\"\(terminator)")
-		case .array(let array):
-			guard !array.isEmpty else {
-				lines.append("\(indentation)\(keyPrefix)[]\(terminator)")
-				return
-			}
-			lines.append("\(indentation)\(keyPrefix)[")
-			for (index, item) in array.enumerated() {
-				formatDictionaryMetadataValue(
-					key: nil,
-					value: item,
-					indentation: "\(indentation)\t",
-					lines: &lines,
-					skipTerminator: index == array.count - 1
-				)
-			}
-			lines.append("\(indentation)]\(terminator)")
-		case .dictionary(let dict):
-			guard !dict.isEmpty else {
-				lines.append("\(indentation)\(keyPrefix)[:]\(terminator)")
-				return
-			}
-			lines.append("\(indentation)\(keyPrefix)[")
-			for (index, (key, value)) in dict.enumerated() {
-				formatDictionaryMetadataValue(
-					key: key,
-					value: value,
-					indentation: "\(indentation)\t",
-					lines: &lines,
-					skipTerminator: index == dict.count - 1
-				)
-			}
-			lines.append("\(indentation)]\(terminator)")
-		}
 	}
 }
 
