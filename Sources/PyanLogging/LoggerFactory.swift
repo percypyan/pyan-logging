@@ -17,10 +17,10 @@ import Foundation
 /// If the bootstrap handler already conforms to ``LogHandlerWithCategory``,
 /// the category is set directly. Otherwise the handler is wrapped in a
 /// ``CategoryAdderLogHandler`` that injects the category as metadata.
-public struct LoggerFactory<Category: LogCategory> {
+public struct LoggerFactory<Category: LogCategory>: Sendable {
 	private let label: String
-	private let handlerFactory: ((String) -> any LogHandler)?
-	private let handlerFactoryWithMetadata: ((String, Logger.MetadataProvider?) -> any LogHandler)?
+	private let handlerFactory: (@Sendable (String) -> any LogHandler)?
+	private let handlerFactoryWithMetadata: (@Sendable (String, Logger.MetadataProvider?) -> any LogHandler)?
 	private let metadataProvider: Logger.MetadataProvider?
 
 	/// Creates a factory that produces loggers with the given subsystem label.
@@ -43,7 +43,7 @@ public struct LoggerFactory<Category: LogCategory> {
 	///   - label: The subsystem identifier passed to swift-log
 	///     (typically a reverse-DNS string such as `"com.example.myapp"`).
 	///   - factory: A closure that creates a `LogHandler` for the given label.
-	public init(label: String, factory: @escaping (String) -> any LogHandler) {
+	public init(label: String, factory: @Sendable @escaping (String) -> any LogHandler) {
 		self.label = label
 		self.handlerFactory = factory
 		self.handlerFactoryWithMetadata = nil
@@ -61,7 +61,7 @@ public struct LoggerFactory<Category: LogCategory> {
 	///     (typically a reverse-DNS string such as `"com.example.myapp"`).
 	///   - factory: A closure that creates a `LogHandler` for the given label
 	///     and optional metadata provider.
-	public init(label: String, factory: @escaping (String, Logger.MetadataProvider?) -> any LogHandler) {
+	public init(label: String, factory: @Sendable @escaping (String, Logger.MetadataProvider?) -> any LogHandler) {
 		self.label = label
 		self.handlerFactory = nil
 		self.handlerFactoryWithMetadata = factory
