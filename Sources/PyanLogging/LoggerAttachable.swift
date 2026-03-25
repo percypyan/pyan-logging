@@ -9,7 +9,7 @@
 ///
 /// Conform model or service types to this protocol so their relevant
 /// properties can be attached to log messages via
-/// ``Logging/Logger/attaching(key:_:)``.
+/// `Logging.Logger/attaching(key:_:)`.
 public protocol LoggerAttachable {
 	/// The metadata key-value pairs this instance contributes to a logger.
 	var logMetadata: Logger.Metadata { get }

@@ -82,7 +82,7 @@ let factory = LoggerFactory<AppLogCategory>(
 ### Metadata Style
 
 ``OSLogHandler`` supports different metadata formatting styles via
-``OSLogHandler/MetadataStyle``. Pass the desired style at initialization:
+``MetadataFormatter/MetadataStyle``. Pass the desired style at initialization:
 
 ```swift
 LoggingSystem.bootstrap { label in
@@ -98,10 +98,10 @@ Available styles:
 
 | Style | Output |
 |---|---|
-| ``OSLogHandler/MetadataStyle/oneLine`` (default) | `> key1 = value1 \| key2 = value2` |
-| ``OSLogHandler/MetadataStyle/multiline`` | Each pair on its own `> ` prefixed line |
-| ``OSLogHandler/MetadataStyle/dictionary`` | The metadata dictionary's printed on multiple lines |
-| ``OSLogHandler/MetadataStyle/hidden`` | Metadata is omitted entirely |
+| ``MetadataFormatter/MetadataStyle/oneLine`` (default) | `> key1 = value1 \| key2 = value2` |
+| ``MetadataFormatter/MetadataStyle/multiline`` | Each pair on its own `> ` prefixed line |
+| ``MetadataFormatter/MetadataStyle/dictionary`` | The metadata dictionary's printed on multiple lines |
+| ``MetadataFormatter/MetadataStyle/hidden`` | Metadata is omitted entirely |
 
 ### Metadata Provider
 

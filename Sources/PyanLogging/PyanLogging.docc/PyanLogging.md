@@ -48,12 +48,11 @@ providers — see <doc:GettingStarted> for details.
 - <doc:GettingStarted>
 - ``LoggerFactory``
 - ``LogCategory``
-- ``Swift.Logger/categorized(_:)``
 
 ### Log Handlers
 
 - ``OSLogHandler``
-- ``OSLogHandler/MetadataStyle``
+- ``MetadataFormatter/MetadataStyle``
 - ``LogHandlerWithCategory``
 - ``CategoryAdderLogHandler``
 - ``MockLogHandler``

@@ -22,8 +22,8 @@ import os
 /// > key = value | key = value
 /// ```
 ///
-/// The metadata layout can be customized by passing a ``MetadataStyle`` at
-/// initialization. The default style is ``MetadataStyle/oneLine``.
+/// The metadata layout can be customized by passing a ``MetadataFormatter/MetadataStyle`` at
+/// initialization. The default style is ``MetadataFormatter/MetadataStyle/oneLine``.
 ///
 /// Metadata from the handler, its provider, and per-message metadata are merged
 /// and flattened before being appended.

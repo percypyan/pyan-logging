@@ -32,7 +32,7 @@ public extension MetadataKey {
 ///
 /// `MetadataContainer` is backed by a `Mutex` and can be safely updated from
 /// any concurrency context. It supports flat and nested metadata structures
-/// and can produce a ``Logging/Logger/MetadataProvider`` for integration with
+/// and can produce a `MetadataProvider` for integration with
 /// swift-log handlers.
 public final class MetadataContainer<Key: MetadataKey>: Sendable {
 	private let container = Mutex(Logger.Metadata())
