@@ -5,6 +5,7 @@
 //  Created by Perceval Archimbaud on 03/03/2026.
 //
 
+import Synchronization
 import Testing
 @testable import PyanLogging
 
@@ -37,14 +38,14 @@ struct LoggerFactoryTests {
 
 	@Test("Factory with metadata-accepting handler factory invokes the closure")
 	func handlerFactoryWithMetadata() {
-		var receivedLabel: String?
+		let receivedLabel = Mutex<String?>(nil)
 		let factory = LoggerFactory<TestLogCategory>(label: "com.test.app") { label, provider in
-			receivedLabel = label
+			receivedLabel.withLock { $0 = label }
 			return SpyLogHandler(storage: .init())
 		}
 		_ = factory.logger(for: .ui)
 
-		#expect(receivedLabel == "com.test.app")
+		#expect(receivedLabel.withLock { $0 } == "com.test.app")
 	}
 
 	@Test("Factory with metadata provider attaches it to the logger")
