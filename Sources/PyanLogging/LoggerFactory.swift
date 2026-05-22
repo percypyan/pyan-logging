@@ -12,9 +12,10 @@ import Foundation
 ///
 /// `LoggerFactory` is the main entry point for obtaining loggers. It wraps
 /// swift-log's `Logger` and attaches the requested category as
-/// `logger.category` metadata. Handlers that route on category (such as
-/// ``OSLogHandler``) consume it natively; other handlers receive it as
-/// ordinary metadata.
+/// `logger.category` metadata. Each handler decides how to use the key:
+/// ``OSLogHandler`` (shipped with this package) routes `os.Logger` calls on
+/// it, but any handler is free to inspect the key for its own routing,
+/// display, or tagging logic -- or to ignore it entirely.
 public struct LoggerFactory<Category: LogCategory>: Sendable {
 	private let label: String
 	private let handlerFactory: (@Sendable (String) -> any LogHandler)?

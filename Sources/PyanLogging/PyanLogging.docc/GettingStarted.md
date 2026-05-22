@@ -49,9 +49,10 @@ networkLogger.info("Request completed")
 ```
 
 The factory attaches the category as `logger.category` metadata on every
-logger it produces. Handlers that route on category (such as
-``OSLogHandler``) consume the key natively; other handlers receive it as
-ordinary metadata.
+logger it produces. Each handler decides how to use the key:
+``OSLogHandler`` (shipped with this package) routes `os.Logger` calls on
+it, but any handler is free to inspect the key for its own routing,
+display, or tagging logic -- or to ignore it entirely.
 
 ### Custom Handler Factory
 

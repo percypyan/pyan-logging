@@ -9,9 +9,11 @@ public extension Logger {
 	/// Returns a copy of this logger with the given category attached as
 	/// `logger.category` metadata.
 	///
-	/// `logger.category` is a reserved key. Handlers that route on category
-	/// (such as ``OSLogHandler``) consume it natively. Other handlers receive
-	/// it as ordinary metadata.
+	/// `logger.category` is a conventional key carried in the logger's
+	/// metadata. Each handler decides how to use it: ``OSLogHandler`` (shipped
+	/// with this package) routes `os.Logger` calls on it, but any handler is
+	/// free to inspect the key for its own routing, display, or tagging
+	/// logic -- or to ignore it entirely.
 	///
 	/// ```swift
 	/// var logger = Logger(label: "com.example.myapp")
