@@ -32,9 +32,10 @@ enum AppLogCategory: String, LogCategory {
 }
 ```
 
-The default ``LogCategory/label`` implementation capitalizes the raw value
-(e.g. `"network"` becomes `"Network"`). Override ``LogCategory/label`` for
-custom formatting.
+The default ``LogCategory/label`` implementation upper-cases the first
+character of the raw value (e.g. `"network"` becomes `"Network"`,
+`"staticGolfMap"` becomes `"StaticGolfMap"`). Override
+``LogCategory/label`` for custom formatting.
 
 ## Creating Loggers
 
@@ -47,9 +48,10 @@ let networkLogger = factory.logger(for: .network)
 networkLogger.info("Request completed")
 ```
 
-The factory checks whether the bootstrapped handler conforms to
-``LogHandlerWithCategory``. If so, the category is set directly.
-Otherwise the handler is wrapped in a ``CategoryAdderLogHandler``.
+The factory attaches the category as `logger.category` metadata on every
+logger it produces. Handlers that route on category (such as
+``OSLogHandler``) consume the key natively; other handlers receive it as
+ordinary metadata.
 
 ### Custom Handler Factory
 

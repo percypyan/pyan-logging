@@ -11,12 +11,10 @@ import Foundation
 /// Creates pre-configured `Logger` instances scoped to a specific ``LogCategory``.
 ///
 /// `LoggerFactory` is the main entry point for obtaining loggers. It wraps
-/// swift-log's `Logger` and ensures every logger it produces carries the
-/// appropriate category metadata.
-///
-/// If the bootstrap handler already conforms to ``LogHandlerWithCategory``,
-/// the category is set directly. Otherwise the handler is wrapped in a
-/// ``CategoryAdderLogHandler`` that injects the category as metadata.
+/// swift-log's `Logger` and attaches the requested category as
+/// `logger.category` metadata. Handlers that route on category (such as
+/// ``OSLogHandler``) consume it natively; other handlers receive it as
+/// ordinary metadata.
 public struct LoggerFactory<Category: LogCategory>: Sendable {
 	private let label: String
 	private let handlerFactory: (@Sendable (String) -> any LogHandler)?

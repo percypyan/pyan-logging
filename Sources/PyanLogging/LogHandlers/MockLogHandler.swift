@@ -25,12 +25,9 @@ import Synchronization
 /// ```
 ///
 /// > important: `MockLogHandler` is only available in **Debug** builds.
-public struct MockLogHandler: LogHandlerWithCategory {
+public struct MockLogHandler: LogHandler {
 	/// The backing store where log entries are recorded.
 	public let storage: Storage
-
-	/// The logging category label.
-	public var category: String
 
 	public var logLevel: Logger.Level = .trace
 	public var metadata: Logger.Metadata = [:]
@@ -40,11 +37,9 @@ public struct MockLogHandler: LogHandlerWithCategory {
 	///
 	/// - Parameters:
 	///   - label: The logger label (unused internally but required by `LogHandler`).
-	///   - category: An optional category string. Defaults to an empty string.
 	///   - storage: The storage instance to record entries into. A new instance is
 	///     created by default, but pass a shared one to inspect records from tests.
-	public init(label: String, category: String = "", storage: Storage = .init()) {
-		self.category = category
+	public init(label: String, storage: Storage = .init()) {
 		self.storage = storage
 	}
 

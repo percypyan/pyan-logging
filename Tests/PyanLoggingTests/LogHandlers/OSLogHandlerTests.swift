@@ -17,6 +17,138 @@ struct OSLogHandlerTests {
 		checkValueSemanticImplementation(of: handler)
 	}
 
+	// MARK: - prepareMetadata
+
+	@Suite("prepareMetadata")
+	struct PrepareMetadataTests {
+
+		@Test("Merges handler metadata with explicit metadata")
+		func mergesHandlerAndExplicit() {
+			let result = OSLogHandler.prepareMetadata(
+				base: ["handler": "base"],
+				provider: nil,
+				explicit: ["explicit": "extra"]
+			)
+			#expect(result?["handler"] == "base")
+			#expect(result?["explicit"] == "extra")
+		}
+
+		@Test("Explicit metadata overrides handler metadata for same key")
+		func explicitOverridesHandler() {
+			let result = OSLogHandler.prepareMetadata(
+				base: ["key": "from-handler"],
+				provider: nil,
+				explicit: ["key": "from-explicit"]
+			)
+			#expect(result?["key"] == "from-explicit")
+		}
+
+		@Test("Merges provider metadata into the result")
+		func mergesProviderMetadata() {
+			let provider = Logger.MetadataProvider { ["provided": "dynamic"] }
+			let result = OSLogHandler.prepareMetadata(
+				base: [:],
+				provider: provider,
+				explicit: nil
+			)
+			#expect(result?["provided"] == "dynamic")
+		}
+	}
+
+	// MARK: - resolveCategory
+
+	@Suite("resolveCategory")
+	struct ResolveCategoryTests {
+
+		@Test("Falls back to default when logger.category is absent")
+		func defaultWhenAbsent() {
+			let result = OSLogHandler.resolveCategory(
+				from: ["other": "value"],
+				default: "Default"
+			)
+			#expect(result.category == "Default")
+			#expect(result.usedMetadata == false)
+		}
+
+		@Test("Uses the metadata value when logger.category is a .string")
+		func stringVariant() {
+			let result = OSLogHandler.resolveCategory(
+				from: ["logger.category": .string("Network")],
+				default: "Default"
+			)
+			#expect(result.category == "Network")
+			#expect(result.usedMetadata == true)
+		}
+
+		@Test("Uses the coerced value when logger.category is a .stringConvertible")
+		func stringConvertibleVariant() {
+			let result = OSLogHandler.resolveCategory(
+				from: ["logger.category": .stringConvertible(42)],
+				default: "Default"
+			)
+			#expect(result.category == "42")
+			#expect(result.usedMetadata == true)
+		}
+
+		@Test("Falls back to default when logger.category is an unsupported variant")
+		func unsupportedVariant() {
+			let result = OSLogHandler.resolveCategory(
+				from: ["logger.category": .array([.string("Network")])],
+				default: "Default"
+			)
+			#expect(result.category == "Default")
+			#expect(result.usedMetadata == false)
+		}
+	}
+
+	// MARK: - Routing behaviour through log(...)
+
+	@Suite("log routing")
+	struct LogRoutingTests {
+
+		@Test("Defaults route through the construction-time category")
+		func defaultCategoryRoutesThroughCache() {
+			let handler = OSLogHandler(label: "com.test", category: "Default")
+			handler.log(
+				level: .info, message: "msg", metadata: nil,
+				source: "TestSource", file: #file, function: #function, line: #line
+			)
+			#expect(handler.cachedCategoriesForTesting == ["Default"])
+		}
+
+		@Test("logger.category in metadata routes through the metadata-derived category")
+		func metadataCategoryRoutesThroughCache() {
+			let handler = OSLogHandler(label: "com.test", category: "Default")
+			handler.log(
+				level: .info, message: "msg",
+				metadata: ["logger.category": .string("Network")],
+				source: "TestSource", file: #file, function: #function, line: #line
+			)
+			#expect(handler.cachedCategoriesForTesting == ["Default", "Network"])
+		}
+
+		@Test("Successive logs with the same category reuse the same os.Logger")
+		func reusesCachedOsLogger() {
+			let handler = OSLogHandler(label: "com.test", category: "Default")
+			let first = handler.osLogger(for: "Custom")
+			let second = handler.osLogger(for: "Custom")
+			// os.Logger is a struct; identity isn't directly observable, but the
+			// cache size proves only one was created.
+			#expect(handler.cachedCategoriesForTesting == ["Default", "Custom"])
+			_ = first; _ = second
+		}
+
+		@Test("Round-trip: Logger.categorized routes OSLogHandler via metadata")
+		func roundTripThroughLoggerCategorized() {
+			let handler = OSLogHandler(label: "com.test", category: "Default")
+			let logger = Logger(label: "test") { _ in handler }
+			let categorized = logger.categorized(TestLogCategory.network)
+			categorized.info("hello")
+
+			#expect(handler.cachedCategoriesForTesting.contains("Network"))
+		}
+	}
+
 	// MARK: - formatMessage
 
 	@Suite("formatMessage")
@@ -30,7 +162,7 @@ struct OSLogHandlerTests {
 			let result = handler.formatMessage(
 				level: .warning,
 				message: "something happened",
-				metadata: nil,
+				metadata: [:],
 				source: "PyanLogging",
 				file: "PyanLogging/OSLogHandler.swift",
 				function: "test()",
@@ -50,7 +182,7 @@ struct OSLogHandlerTests {
 			let result = handler.formatMessage(
 				level: .info,
 				message: "hello",
-				metadata: nil,
+				metadata: [:],
 				source: source,
 				file: file,
 				function: "test()",
@@ -66,7 +198,7 @@ struct OSLogHandlerTests {
 			let result = handler.formatMessage(
 				level: .info,
 				message: "hello",
-				metadata: nil,
+				metadata: [:],
 				source: "NetworkLayer",
 				file: "PyanLogging/OSLogHandler.swift",
 				function: "test()",
@@ -77,22 +209,6 @@ struct OSLogHandlerTests {
 		}
 
 		// MARK: Metadata suffix
-
-		@Test("Appends no metadata suffix when metadata is nil")
-		func noMetadataSuffixWhenNil() {
-			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
-			let result = handler.formatMessage(
-				level: .debug,
-				message: "msg",
-				metadata: nil,
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
-			)
-
-			#expect(result == "[DEBUG] msg")
-		}
 
 		@Test("Appends no metadata suffix when metadata is empty")
 		func noMetadataSuffixWhenEmpty() {
@@ -124,68 +240,6 @@ struct OSLogHandlerTests {
 			)
 
 			#expect(result == "[INFO] request\n> key = value")
-		}
-
-		// MARK: Metadata merging
-
-		@Test("Merges handler metadata with explicit metadata")
-		func mergesHandlerAndExplicitMetadata() {
-			var handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
-			handler.metadata = ["handler": "base"]
-
-			let result = handler.formatMessage(
-				level: .info,
-				message: "merged",
-				metadata: ["explicit": "extra"],
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
-			)
-
-			#expect(result.contains("handler = base"))
-			#expect(result.contains("explicit = extra"))
-		}
-
-		@Test("Explicit metadata overrides handler metadata for same key")
-		func explicitOverridesHandler() {
-			var handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
-			handler.metadata = ["key": "from-handler"]
-
-			let result = handler.formatMessage(
-				level: .info,
-				message: "override",
-				metadata: ["key": "from-explicit"],
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
-			)
-
-			#expect(result.contains("key = from-explicit"))
-			#expect(!result.contains("from-handler"))
-		}
-
-		@Test("Merges provider metadata into output")
-		func mergesProviderMetadata() {
-			let handler = OSLogHandler(
-				label: "test",
-				category: "Test",
-				metadataStyle: .oneLine,
-				metadataProvider: .init { ["provided": "dynamic"] }
-			)
-
-			let result = handler.formatMessage(
-				level: .info,
-				message: "with-provider",
-				metadata: nil,
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
-			)
-
-			#expect(result.contains("provided = dynamic"))
 		}
 
 		// MARK: Full integration

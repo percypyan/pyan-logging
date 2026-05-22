@@ -66,40 +66,6 @@ struct SpyLogHandler: LogHandler {
 	}
 }
 
-// MARK: - Spy LogHandlerWithCategory
-
-/// A LogHandler that conforms to LogHandlerWithCategory for testing the direct-category path.
-struct SpyCategoryLogHandler: LogHandlerWithCategory {
-	let storage: SpyLogHandler.Storage
-
-	var category: String
-	var logLevel: Logger.Level = .trace
-	var metadata: Logger.Metadata = [:]
-	var metadataProvider: Logger.MetadataProvider?
-
-	init(label: String, category: String = "", storage: SpyLogHandler.Storage = .init()) {
-		self.category = category
-		self.storage = storage
-	}
-
-	func log(
-		level: Logger.Level,
-		message: Logger.Message,
-		metadata: Logger.Metadata?,
-		source: String,
-		file: String,
-		function: String,
-		line: UInt
-	) {
-		storage.records.append((level: level, message: message, metadata: metadata, source: source))
-	}
-
-	subscript(metadataKey key: String) -> Logger.Metadata.Value? {
-		get { metadata[key] }
-		set { metadata[key] = newValue }
-	}
-}
-
 // MARK: - Test LogCategory
 
 enum TestLogCategory: String, LogCategory {
