@@ -24,7 +24,7 @@ public extension Logger {
 	/// - Returns: A new `Logger` carrying the category in its metadata.
 	func categorized(_ category: any LogCategory) -> Self {
 		var copy = self
-		copy[metadataKey: "logger.category"] = .string(category.label)
+		copy[metadataKey: LoggerMetadataKey.category] = .string(category.label)
 		return copy
 	}
 }

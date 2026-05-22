@@ -1,9 +1,8 @@
 //
-//  PyanLogging.swift
+//  LoggerFactory.swift
 //  PyanLogging
 //
 //  Created by Perceval Archimbaud on 01/03/2026.
-//
 //
 
 import Foundation
@@ -87,7 +86,8 @@ public struct LoggerFactory<Category: LogCategory>: Sendable {
 	/// Returns a new `Logger` configured for the given category.
 	///
 	/// - Parameter category: The category to associate with the logger.
-	/// - Returns: A `Logger` whose handler includes the category information.
+	/// - Returns: A `Logger` carrying the category as
+	///   ``LoggerMetadataKey/category`` metadata.
 	public func logger(for category: Category) -> Logger {
 		return makeLogger().categorized(category)
 	}

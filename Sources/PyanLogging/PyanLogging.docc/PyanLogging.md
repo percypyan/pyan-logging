@@ -48,16 +48,17 @@ providers — see <doc:GettingStarted> for details.
 - <doc:GettingStarted>
 - ``LoggerFactory``
 - ``LogCategory``
+- ``LoggerMetadataKey``
 
 ### Log Handlers
 
 - ``OSLogHandler``
-- ``MetadataFormatter/MetadataStyle``
 - ``MockLogHandler``
 
 ### Metadata
 
 - ``MetadataContainer``
 - ``MetadataKey``
+- ``MetadataFormatter``
 - ``LoggerAttachable``
 - ``NestedPathRepresentation``
