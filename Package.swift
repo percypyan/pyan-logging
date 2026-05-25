@@ -20,7 +20,7 @@ let package = Package(
         ),
     ],
 	dependencies: [
-		.package(url: "https://github.com/apple/swift-log", from: "1.10.1")
+		.package(url: "https://github.com/apple/swift-log", from: "1.12.0")
 	],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
