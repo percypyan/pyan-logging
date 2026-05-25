@@ -246,19 +246,37 @@ struct OSLogHandlerTests {
 	@Suite("formatMessage")
 	struct FormatMessageTests {
 
+		private static func event(
+			level: Logging.Logger.Level,
+			message: Logging.Logger.Message,
+			error: (any Error)? = nil,
+			source: String = "PyanLogging",
+			file: String = "PyanLogging/File.swift"
+		) -> Logging.LogEvent {
+			Logging.LogEvent(
+				level: level,
+				message: message,
+				error: error,
+				metadata: nil,
+				source: source,
+				file: file,
+				function: "test()",
+				line: 1
+			)
+		}
+
 		// MARK: Header
 
 		@Test("Includes uppercased level in header")
 		func headerIncludesLevel() {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .hidden)
 			let result = handler.formatMessage(
-				level: .warning,
-				message: "something happened",
-				metadata: [:],
-				source: "PyanLogging",
-				file: "PyanLogging/OSLogHandler.swift",
-				function: "test()",
-				line: 1
+				event: Self.event(
+					level: .warning,
+					message: "something happened",
+					file: "PyanLogging/OSLogHandler.swift"
+				),
+				metadata: [:]
 			)
 
 			#expect(result.hasPrefix("[WARNING]"))
@@ -272,13 +290,8 @@ struct OSLogHandlerTests {
 		func sourceOmittedWhenMatchingModule(source: String, file: String) {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .hidden)
 			let result = handler.formatMessage(
-				level: .info,
-				message: "hello",
-				metadata: [:],
-				source: source,
-				file: file,
-				function: "test()",
-				line: 1
+				event: Self.event(level: .info, message: "hello", source: source, file: file),
+				metadata: [:]
 			)
 
 			#expect(result == "[INFO] hello")
@@ -288,13 +301,13 @@ struct OSLogHandlerTests {
 		func sourceIncludedWhenDifferentModule() {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .hidden)
 			let result = handler.formatMessage(
-				level: .info,
-				message: "hello",
-				metadata: [:],
-				source: "NetworkLayer",
-				file: "PyanLogging/OSLogHandler.swift",
-				function: "test()",
-				line: 1
+				event: Self.event(
+					level: .info,
+					message: "hello",
+					source: "NetworkLayer",
+					file: "PyanLogging/OSLogHandler.swift"
+				),
+				metadata: [:]
 			)
 
 			#expect(result == "[INFO][NetworkLayer] hello")
@@ -306,13 +319,8 @@ struct OSLogHandlerTests {
 		func noMetadataSuffixWhenEmpty() {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
 			let result = handler.formatMessage(
-				level: .debug,
-				message: "msg",
-				metadata: [:],
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
+				event: Self.event(level: .debug, message: "msg"),
+				metadata: [:]
 			)
 
 			#expect(result == "[DEBUG] msg")
@@ -322,13 +330,8 @@ struct OSLogHandlerTests {
 		func metadataAppendedOnNewLine() {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
 			let result = handler.formatMessage(
-				level: .info,
-				message: "request",
-				metadata: ["key": "value"],
-				source: "PyanLogging",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
+				event: Self.event(level: .info, message: "request"),
+				metadata: ["key": "value"]
 			)
 
 			#expect(result == "[INFO] request\n> key = value")
@@ -340,16 +343,39 @@ struct OSLogHandlerTests {
 		func fullOutputMultiline() {
 			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .multiline)
 			let result = handler.formatMessage(
-				level: .error,
-				message: "failed",
-				metadata: ["code": "500", "api": "/health"],
-				source: "NetworkLayer",
-				file: "PyanLogging/File.swift",
-				function: "f()",
-				line: 1
+				event: Self.event(level: .error, message: "failed", source: "NetworkLayer"),
+				metadata: ["code": "500", "api": "/health"]
 			)
 
 			#expect(result == "[ERROR][NetworkLayer] failed\n> api = /health\n> code = 500")
+		}
+
+		@Test("Appends error on its own line when present")
+		func errorAppendedOnNewLine() {
+			let handler = OSLogHandler(label: "test", category: "Test")
+			struct SampleError: Error, CustomStringConvertible {
+				var description: String { "boom" }
+			}
+			let result = handler.formatMessage(
+				event: Self.event(level: .error, message: "failed", error: SampleError()),
+				metadata: [:]
+			)
+
+			#expect(result == "[ERROR] failed\n  Error: boom")
+		}
+
+		@Test("Error precedes metadata when both are present")
+		func errorAndMetadataBothAppended() {
+			let handler = OSLogHandler(label: "test", category: "Test", metadataStyle: .oneLine)
+			struct SampleError: Error, CustomStringConvertible {
+				var description: String { "boom" }
+			}
+			let result = handler.formatMessage(
+				event: Self.event(level: .error, message: "failed", error: SampleError()),
+				metadata: ["key": "value"]
+			)
+
+			#expect(result == "[ERROR] failed\n  Error: boom\n> key = value")
 		}
 	}
 }

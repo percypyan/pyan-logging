@@ -12,8 +12,9 @@ import Synchronization
 /// A `LogHandler` that captures log entries in memory for use in tests.
 ///
 /// `MockLogHandler` records every log call into a shared ``Storage`` instance,
-/// allowing test assertions against logged messages, levels, metadata, and
-/// sources. The default log level is `.trace` so all messages are captured.
+/// keeping both the raw `LogEvent` as the call site passed it and the merged
+/// metadata (handler + provider + per-call) that downstream handlers would see.
+/// Tests can assert against either.
 ///
 /// ```swift
 /// let storage = MockLogHandler.Storage()
@@ -43,27 +44,13 @@ public struct MockLogHandler: LogHandler {
 		self.storage = storage
 	}
 
-	public func log(
-		level: Logger.Level,
-		message: Logger.Message,
-		metadata: Logger.Metadata?,
-		source: String,
-		file: String,
-		function: String,
-		line: UInt
-	) {
+	public func log(event: Logging.LogEvent) {
 		let finalMetadata = Self.prepareMetadata(
 			base: self.metadata,
 			provider: metadataProvider,
-			explicit: metadata
+			explicit: event.metadata
 		)
-
-		storage.records.append(.init(
-			level: level,
-			message: message,
-			metadata: finalMetadata,
-			source: source
-		))
+		storage.records.append(.init(event: event, finalMetadata: finalMetadata))
 	}
 
 	public subscript(metadataKey key: String) -> Logger.Metadata.Value? {
@@ -73,15 +60,15 @@ public struct MockLogHandler: LogHandler {
 }
 
 public extension MockLogHandler {
-	/// Thread-safe storage that accumulates ``LogEntry`` values from a ``MockLogHandler``.
+	/// Thread-safe storage that accumulates ``Record`` values from a ``MockLogHandler``.
 	///
 	/// Share a single `Storage` instance across handlers (or loggers) to collect
 	/// all log records in one place for test assertions.
 	final class Storage: Sendable {
-		private let _records = Mutex<[LogEntry]>([])
+		private let _records = Mutex<[Record]>([])
 
-		/// The log entries recorded so far, in order of arrival.
-		public var records: [LogEntry] {
+		/// The records captured so far, in order of arrival.
+		public var records: [Record] {
 			get { _records.withLock { $0 } }
 			set { _records.withLock { $0 = newValue } }
 		}
@@ -89,19 +76,19 @@ public extension MockLogHandler {
 		/// Creates an empty storage.
 		public init() {}
 	}
-}
 
-public extension MockLogHandler.Storage {
-	/// A single captured log record.
-	struct LogEntry: Sendable {
-		/// The severity level of the log call.
-		public let level: Logger.Level
-		/// The logged message.
-		public let message: Logger.Message
-		/// The merged metadata at the time of the log call, or `nil` if none was present.
-		public let metadata: Logger.Metadata?
-		/// The source module that emitted the log.
-		public let source: String
+	/// A single captured log call.
+	struct Record: Sendable {
+		/// The `LogEvent` as the call site emitted it.
+		public let event: Logging.LogEvent
+		/// The metadata after merging handler + provider + per-call metadata,
+		/// matching what downstream handlers would see at format time.
+		public let finalMetadata: Logging.Logger.Metadata?
+
+		public init(event: Logging.LogEvent, finalMetadata: Logging.Logger.Metadata?) {
+			self.event = event
+			self.finalMetadata = finalMetadata
+		}
 	}
 }
 
